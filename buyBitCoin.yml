@@ -1,0 +1,118 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+
+Transform: AWS::Serverless-2016-10-31
+
+Description: pds cloudformation for tools
+
+Parameters: 
+  envName: 
+    Type: String
+    Default: local
+    AllowedValues:
+      - local
+      - dev
+      - stg
+      - prd
+
+# APIが作り直された場合は以下も変更する必要あり
+Mappings: 
+  riyotsuchiAccountParams:
+    "739770618285":
+      resourceId: hoge
+      restApiId: fuga
+    "533267092966":
+      resourceId: tfjap5
+      restApiId: 07xy9ad0p4
+    "471112551524":
+      resourceId: i6szqg
+      restApiId: xov7fe0gkk
+  riyokakuninAccountParams:
+    "739770618285":
+      resourceId: hoge
+      restApiId: fuga
+    "533267092966":
+      resourceId: kd3lay
+      restApiId: wmt6y8gl1d
+    "471112551524":
+      resourceId: xablcb
+      restApiId: jfnrbo9rx4
+
+
+# リソース
+Resources:
+# ----------------------------- #
+# riyotsuchi-Lambda-Function    #
+# ----------------------------- #
+
+  riyotsuchiApiGwErrorResponseLambda: 
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub study-buy-bit-coin-lambda-shintani
+      CodeUri: ./src
+      Handler: index.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          accountId: !Ref "AWS::AccountId"
+      Role: !GetAtt LambdaRole.Arn
+
+# # ----------------------------- #
+# # riyokakunin-Lambda-Function               #
+# # ----------------------------- #
+#   riyokakuninApiGwErrorResponseLambda: 
+#     Type: AWS::Serverless::Function
+#     Properties:
+#       FunctionName: !Sub ${envName}-pds-fault-test-lambda-riyokakunin
+#       CodeUri: ./src/ritsuRikakuFaultTestLambda
+#       Handler: index.lambda_handler
+#       Runtime: python3.9
+#       Environment:
+#         Variables:
+#           accountId: !Ref "AWS::AccountId"
+#           env: !Sub ${envName}
+#           projectName: riyokakunin
+#           resourceId: !FindInMap [riyokakuninAccountParams, !Ref "AWS::AccountId", resourceId]
+#           restApiId: !FindInMap [riyokakuninAccountParams, !Ref "AWS::AccountId", restApiId]
+#       Role: !GetAtt LambdaRole.Arn
+
+
+  # ----------------------------- #
+  # IAM-ROLE                      #
+  # ----------------------------- #
+  #TODO:ロールを変更する
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: study-buy-bit-coin-role-shintani
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonKinesisFullAccess
+        - arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator
+      Policies:
+        - PolicyName: allowPassRoles
+          PolicyDocument:
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": "iam:PassRole",
+                        "Resource": "*"
+                    }
+                ]
+            }
+
+      Tags:
+        - Key: "project"
+          Value: "pds"
+
+
